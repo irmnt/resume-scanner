@@ -2,7 +2,11 @@ import { useState } from 'react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  // State of the resume text, job description text, and the analysis result
+  const [resumeText, setResumeText] = useState<string>('');
+  const [jdText, setJdText] = useState<string>('');
+  const [result, setResult] = useState<string>('');
 
   return (
     <>
