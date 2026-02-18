@@ -3,10 +3,13 @@ import { useLocation, Link } from 'react-router-dom';
 
 /* Response schema */
 interface ScanResponse {
-    result: string;
-    missing_skills: string[];
-    "your_resume": string;     // Note: Keys with spaces need quotes!
-    "job_description": string;
+    status: string;
+    match_score: string;        // e.g. "85.5%"
+    missing_skills: string[];   
+    details: {
+        resume_length: number;  
+        jd_length: number;      
+    };
 }
 
 export default function ResultPage() {
@@ -24,20 +27,28 @@ export default function ResultPage() {
     }
 
     return (
-        <div>
+      <div>
       <h2>Analysis Complete</h2>
       
       <div className="result-score">
-        <h3>Score:</h3>
-        <p>{analysisData.result}</p>
+        <h3>Match Percentage:</h3>
+        <p>{analysisData.match_score}</p>
       </div>
 
       <h4>Missing Skills:</h4>
-      <ul>
-        {analysisData.missing_skills.map((skill, index) => (
-          <li key={index}>{skill}</li>
-        ))}
-      </ul>
+      {analysisData.missing_skills && analysisData.missing_skills.length > 0 ? (
+        <ul>
+          {analysisData.missing_skills.map((skill, index) => (
+            <li key={index}>{skill}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>Great job! No major missing skills identified.</p>
+      )}
+
+      <div className="details">
+        <p>Characters analyzed; {analysisData.details.resume_length} (Resume) / {analysisData.details.jd_length} (JD)</p>
+      </div>
 
       {/* A button to go back to the home page */}
       <Link to="/">
