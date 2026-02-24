@@ -29,6 +29,7 @@ def setup_nlp_pipeline(nlp):
     
     # 2. Add your patterns
     patterns = [
+        # programming languages
         {"label": "SKILL", "pattern": [{"LOWER": "python"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "java"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "javascript"}]},
@@ -37,6 +38,7 @@ def setup_nlp_pipeline(nlp):
         {"label": "SKILL", "pattern": [{"LOWER": "c++"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "c#"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "go"}]},
+        # frameworks and tools
         {"label": "SKILL", "pattern": [{"LOWER": "react"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "vue"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "angular"}]},
@@ -44,18 +46,34 @@ def setup_nlp_pipeline(nlp):
         {"label": "SKILL", "pattern": [{"LOWER": "django"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "flask"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "spring"}]},
+        # data tools
+        {"label": "SKILL", "pattern": [{"LOWER": "postgresql"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "mysql"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "rds"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "vectore db"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "graph db"}]},
+        # cloud platforms
         {"label": "SKILL", "pattern": [{"LOWER": "aws"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "azure"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "gcp"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "docker"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "kubernetes"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "terraform"}]},
+        # ci/cd and other tools
         {"label": "SKILL", "pattern": [{"LOWER": "jenkins"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "git"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "machine"}, {"LOWER": "learning"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "rest"}, {"LOWER": "api"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "agile"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "ci"}, {"LOWER": "/" }, {"LOWER": "cd"}]},
+        # AI/ML specific
+        {"label": "SKILL", "pattern": [{"LOWER": "ai"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "claude code"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "copilot"}]},
+        {"label": "SKILL", "pattern": [{"LOWER": "cursor"}]},
+        
+        # TODO: educational qualifications
+        # {"label": "EDUCATION", "pattern": [{"LOWER": "bachelor's degree"}]},
     ]
     
     ruler.add_patterns(patterns)
