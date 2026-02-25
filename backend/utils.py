@@ -84,11 +84,13 @@ def setup_nlp_pipeline(nlp):
     matcher = Matcher(nlp.vocab)
     exp_pattern = [
         {"LIKE_NUM": True}, 
+        {"TEXT": "+", "OP": "?"}, # To capture "5+" years
         {"LOWER": {"IN": ["year", "years", "yrs"]}},
         {"LOWER": "of", "OP": "?"},
         {"LOWER": "experience", "OP": "?"},
         {"LOWER": "in", "OP": "?"},
-        {"POS": {"IN": ["NOUN", "PROPN", "ADJ"]}, "OP": "+"}
+        {"POS": "DET", "OP": "?"},
+        {"POS": {"IN": ["NOUN", "PROPN", "ADJ", "PUNCT", "VERB", "ADP", "CCONJ"]}, "OP": "+"}
     ]
     matcher.add("EXPERIENCE", [exp_pattern])
     
@@ -177,11 +179,15 @@ def evaluate_candidate_experience(resume_exp_list, jd_exp_list):
             if highest_score < 0.5:
                 status = "Unmatched Domain"
                 details = f"Found {best_match['domain']} (Low similarity)"
-            # Rule 2: Same field, but not enough years?
+            # Rule 2: Similar field, but not close enough?
+            elif highest_score < 0.75:
+                status = "Partially Matched Domain"
+                details = f"Found {best_match['domain']} (Moderate similarity)"
+            # Rule 3: Same field, but not enough years?
             elif best_match["years"] < jd_parsed["years"]:
                 status = "Less Qualified (Years)"
                 details = f"Found {best_match['years']} years (Required: {jd_parsed['years']})"
-            # Rule 3: Sufficient?
+            # Rule 4: Sufficient?
             else:
                 status = "Qualified"
                 details = f"Found {best_match['years']} years in {best_match['domain']}"
