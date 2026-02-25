@@ -1,5 +1,7 @@
 import spacy
 from spacy.pipeline import EntityRuler
+from spacy.matcher import Matcher
+from spacy.util import filter_spans
 import warnings
 
 # Suppress warnings for cleaner output
@@ -74,13 +76,26 @@ def setup_nlp_pipeline(nlp):
         
         # TODO: educational qualifications
         # {"label": "EDUCATION", "pattern": [{"LOWER": "bachelor's degree"}]},
+        
     ]
-    
     ruler.add_patterns(patterns)
-    return nlp
+    
+    # 3. Setup Matcher for Experience Extraction
+    matcher = Matcher(nlp.vocab)
+    exp_pattern = [
+        {"LIKE_NUM": True}, 
+        {"LOWER": {"IN": ["year", "years", "yrs"]}},
+        {"LOWER": "of", "OP": "?"},
+        {"LOWER": "experience", "OP": "?"},
+        {"LOWER": "in", "OP": "?"},
+        {"POS": {"IN": ["NOUN", "PROPN", "ADJ"]}, "OP": "+"}
+    ]
+    matcher.add("EXPERIENCE", [exp_pattern])
+    
+    return nlp, matcher
 
 # Initialize Pipeline immediately
-nlp = setup_nlp_pipeline(nlp)
+nlp, matcher = setup_nlp_pipeline(nlp)
 
 # 3. INTERNAL HELPER (The Shared Logic)
 def _extract_skills(doc):
@@ -91,6 +106,94 @@ def _extract_skills(doc):
     # Use a set to avoid duplicates (e.g., finding "Python" twice)
     return set([ent.text for ent in doc.ents if ent.label_ == "SKILL"])
 
+def _extract_experience(doc):
+    """
+    Helper function to extract years of experience from any spaCy Doc.
+    """
+    matches = matcher(doc)
+    
+    spans = [doc[start:end] for match_id, start, end in matches]
+    filtered_spans = filter_spans(spans)
+    
+    return [span.text for span in filtered_spans]
+
+def parse_experience_string(exp_string: str):
+    """
+    Turns '5 years in Software Engineering' into structured data:
+    {'years': 5.0, 'domain': 'Software Engineering'}
+    """
+    doc = nlp(exp_string)
+    years = 0
+    
+    # Extract number
+    numbers = [token.text for token in doc if token.like_num]
+    if numbers:
+        try:
+            years = float(numbers[0])
+        except ValueError:
+            pass 
+
+    # Extract domain (everything after "in" or "of")
+    domain_text = "General"
+    for token in doc:
+        if token.text.lower() in ["in", "of"]:
+            domain_text = doc[token.i + 1 :].text
+            break
+            
+    return {"years": years, "domain": domain_text, "doc": nlp(domain_text)}
+
+def evaluate_candidate_experience(resume_exp_list, jd_exp_list):
+    """
+    Compares the candidate's experience against JD requirements.
+    """
+    evaluations = []
+    
+    # If JD doesn't ask for experience, skip logic
+    if not jd_exp_list:
+        return []
+
+    for jd_item in jd_exp_list:
+        jd_parsed = parse_experience_string(jd_item)
+        best_match = None
+        highest_score = 0
+        
+        # Compare against every experience listed in Resume
+        for res_item in resume_exp_list:
+            res_parsed = parse_experience_string(res_item)
+            
+            # Check Similarity of Domain (e.g. "Software" vs "AI")
+            similarity = jd_parsed["doc"].similarity(res_parsed["doc"])
+            
+            if similarity > highest_score:
+                highest_score = similarity
+                best_match = res_parsed
+        
+        # JUDGMENT LOGIC
+        status = "Not Found"
+        details = "No matching experience found."
+        
+        if best_match:
+            # Rule 1: Totally different field?
+            if highest_score < 0.5:
+                status = "Unmatched Domain"
+                details = f"Found {best_match['domain']} (Low similarity)"
+            # Rule 2: Same field, but not enough years?
+            elif best_match["years"] < jd_parsed["years"]:
+                status = "Less Qualified (Years)"
+                details = f"Found {best_match['years']} years (Required: {jd_parsed['years']})"
+            # Rule 3: Sufficient?
+            else:
+                status = "Qualified"
+                details = f"Found {best_match['years']} years in {best_match['domain']}"
+                
+            evaluations.append({
+                "requirement": jd_item,
+                "status": status,
+                "details": details
+            })
+            
+    return evaluations
+
 # 4. PUBLIC FUNCTION 1: JD Sanitization
 def sanitize_jd(text: str):
     """
@@ -100,11 +203,11 @@ def sanitize_jd(text: str):
     - Extract "Years of Experience" requirements.
     """
     doc = nlp(text)
-    skills = _extract_skills(doc)
     
     return {
         "type": "JD",
-        "skills": skills,
+        "skills": _extract_skills(doc),
+        "experience": _extract_experience(doc),
         "doc": doc
     }
 
@@ -116,11 +219,11 @@ def sanitize_resume(text: str):
     - Add logic here to anonymize the candidate (remove Name/Email).
     """
     doc = nlp(text)
-    skills = _extract_skills(doc)
     
     return {
         "type": "RESUME",
-        "skills": skills,
+        "skills": _extract_skills(doc),
+        "experience": _extract_experience(doc),
         "doc": doc
     }
     
@@ -132,13 +235,16 @@ def get_analysis_results(resume_text: str, jd_text: str):
     jd_data = sanitize_jd(jd_text)
     
     # Step 2: Compare Skills (Hard Match)
-    resume_skills = resume_data["skills"]
-    jd_skills = jd_data["skills"]
-    
     # Find what is in JD but NOT in Resume
-    missing_skills = list(jd_skills - resume_skills)
+    missing_skills = list(jd_data["skills"] - resume_data["skills"])
     
-    # Step 3: Compare Semantics (Soft Match)
+    # Step 3: Compare Experience
+    experience_analysis = evaluate_candidate_experience(
+        resume_data["experience"],
+        jd_data["experience"]
+    )
+    
+    # Step 4: Compare Semantics (Soft Match)
     # .similarity() returns a float between 0.0 and 1.0
     semantic_match = resume_data["doc"].similarity(jd_data["doc"])
     
@@ -146,18 +252,18 @@ def get_analysis_results(resume_text: str, jd_text: str):
     return {
         "match_score": f"{round(semantic_match * 100, 1)}",
         "missing_skills": missing_skills,
+        "experience_analysis": experience_analysis,
         "details": {
-            "resume_skills_found": list(resume_skills),
-            "jd_skills_required": list(jd_skills)
+            "resume_skills_found": list(resume_data["skills"]),
+            "jd_skills_required": list(jd_data["skills"]),
         }
     }
 
 # Test Block
 if __name__ == "__main__":
-    print("--- Running Architecture Test ---")
-    r_text = "I am a Python developer with experience in AWS and Fastapi."
-    j_text = "We are looking for a Python developer with AWS, Docker, and Kubernetes skills."
+    print("--- Testing Experience Logic ---")
+    r_text = "I have 2 years of experience in Software Engineering and 1 year in React."
+    j_text = "Required: 5 years of experience in Software Engineering."
     
     result = get_analysis_results(r_text, j_text)
-    print(f"Match Score: {result['match_score']}")
-    print(f"Missing Skills: {result['missing_skills']}")
+    print("Experience Analysis:", result["experience_analysis"])

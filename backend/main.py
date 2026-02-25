@@ -31,8 +31,9 @@ async def analyze_resume(request: AnalyzeRequest):
         "status": "success",
         "match_score": f"{score}%",
         "missing_skills": missing_skills,
+        "experience_analysis": analysis["experience_analysis"],
         "details": {
-            "resume_length": len(request.resume_text),
-            "jd_length": len(request.jd_text)
+            "resume_skills_found": analysis["details"]["resume_skills_found"],
+            "jd_skills_required": analysis["details"]["jd_skills_required"],
         }
     }
