@@ -241,8 +241,13 @@ def get_analysis_results(resume_text: str, jd_text: str):
     jd_data = sanitize_jd(jd_text)
     
     # Step 2: Compare Skills (Hard Match)
-    # Find what is in JD but NOT in Resume
-    missing_skills = list(jd_data["skills"] - resume_data["skills"])
+    jd_skills = jd_data["skills"]
+    resume_skills = resume_data["skills"]
+    
+    jd_lower = {skill.lower() for skill in jd_skills}
+    resume_lower = {skill.lower() for skill in resume_skills}
+    missing_lower = jd_lower - resume_lower
+    missing_skills = [skill for skill in jd_skills if skill.lower() in missing_lower]
     
     # Step 3: Compare Experience
     experience_analysis = evaluate_candidate_experience(
@@ -250,18 +255,40 @@ def get_analysis_results(resume_text: str, jd_text: str):
         jd_data["experience"]
     )
     
-    # Step 4: Compare Semantics (Soft Match)
-    # .similarity() returns a float between 0.0 and 1.0
-    semantic_match = resume_data["doc"].similarity(jd_data["doc"])
+    # Step 4: Calculate ATS Match Score
+    total_jd_skills = len(jd_lower)
+    
+    if total_jd_skills > 0:
+        skill_matched = total_jd_skills - len(missing_skills)
+        skill_score = (skill_matched / total_jd_skills) * 100
+    else:
+        skill_score = 100.0
+    
+    
+    exp_score = 100.0
+    if experience_analysis:
+        points_per_exp = 100.0 / len(experience_analysis)
+        
+        for exp in experience_analysis:
+            if exp["status"] == "Unmatched Domain":
+                exp_score -= points_per_exp
+            elif exp["status"] == "Less Qualified (Years)":
+                exp_score -= (points_per_exp * 0.5)
+    
+    SKILL_WEIGHT = 0.50
+    EXP_WEIGHT = 0.50
+    
+    final_score = (skill_score * SKILL_WEIGHT) + (exp_score * EXP_WEIGHT)
+    final_score = max(0.0, final_score)
     
     # Step 4: Formatting
     return {
-        "match_score": f"{round(semantic_match * 100, 1)}",
+        "match_score": f"{round(final_score, 1)}%",
         "missing_skills": missing_skills,
         "experience_analysis": experience_analysis,
         "details": {
-            "resume_skills_found": list(resume_data["skills"]),
-            "jd_skills_required": list(jd_data["skills"]),
+            "resume_skills_found": list(resume_skills),
+            "jd_skills_required": list(jd_skills),
         }
     }
 
