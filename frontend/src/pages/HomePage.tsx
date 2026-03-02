@@ -89,13 +89,13 @@ export default function HomePage() {
                     {/* Toggle Buttons */}
                     <div className="toggle-group">
                         <button
-                            className={resumeMode === 'text' ? 'active' : ''}
+                            className={resumeMode === 'text' ? 'active-toggle' : ''}
                             onClick={() => setResumeMode('text')}
                         >
                             Paste Text
                         </button>
                         <button
-                            className={resumeMode === 'pdf' ? 'active' : ''}
+                            className={resumeMode === 'pdf' ? 'active-toggle' : ''}
                             onClick={() => setResumeMode('pdf')}
                         >
                             Upload PDF
