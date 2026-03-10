@@ -6,12 +6,19 @@ interface ExperienceEvaluation {
   details: string;
 }
 
+interface EducationEvaluation {
+  requirement: string;
+  status: string;
+  details: string;
+}
+
 /* Response schema */
 interface ScanResponse {
   status: string;
   match_score: string;
   missing_skills: string[];
   experience_analysis: ExperienceEvaluation[];
+  education_analysis: EducationEvaluation[];
   details: {
     resume_skills_found: string[];
     jd_skills_required: string[];
@@ -80,6 +87,24 @@ export default function ResultPage() {
             </ul>
           ) : (
             <p className="neutral-text">No specific years of experience mentioned in the Job Description.</p>
+          )}
+        </div>
+
+        {/* --- EDUCATION SECTION --- */}
+        <div className="analysis-section education-section">
+          <h4>Education Evaluation</h4>
+          {analysisData.education_analysis && analysisData.education_analysis.length > 0 ? (
+            <ul className="education-list">
+              {analysisData.education_analysis.map((edu, index) => (
+                <li key={index} className={`education-card ${getStatusClass(edu.status)}`}>
+                  <p className="edu-req"><strong>Requirement:</strong> {edu.requirement}</p>
+                  <p className="edu-status"><strong>Status:</strong> {edu.status}</p>
+                  <p className="edu-details"><em>{edu.details}</em></p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="neutral-text">No specific education requirements mentioned in the Job Description.</p>
           )}
         </div>
 

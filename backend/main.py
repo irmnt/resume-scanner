@@ -1,8 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 import pdfplumber
 import io
+import logging
+import warnings
 from fastapi.middleware.cors import CORSMiddleware
 from utils import get_analysis_results
+
+# Suppress PDF font warnings
+warnings.filterwarnings("ignore", message=".*FontBBox.*")
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 # 1. Initialize FastAPI app
 app = FastAPI()
@@ -18,7 +24,7 @@ app.add_middleware(
 
 async def extract_text_from_pdf(file: UploadFile, file_type_name: str) -> str:
     """Helper function to extract text from PDF files."""
-    if not file.filename.endwith(".pdf"):
+    if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail=f"Only PDF files are supported for {file_type_name}.")
     
     extracted_text = ""
@@ -69,9 +75,12 @@ async def analyze_documents(
             "match_score": analysis["match_score"],
             "missing_skills": analysis["missing_skills"],
             "experience_analysis": analysis["experience_analysis"],
+            "education_analysis": analysis["education_analysis"],
             "details": {
                 "resume_skills_found": analysis["details"]["resume_skills_found"],
                 "jd_skills_required": analysis["details"]["jd_skills_required"],
+                "resume_education": analysis["details"]["resume_education"],
+                "jd_education_required": analysis["details"]["jd_education_required"],
             }
         }    
     

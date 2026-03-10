@@ -3,9 +3,11 @@ from spacy.pipeline import EntityRuler
 from spacy.matcher import Matcher
 from spacy.util import filter_spans
 import warnings
+import logging
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 # 1. Load the Model
 try:
@@ -74,8 +76,53 @@ def setup_nlp_pipeline(nlp):
         {"label": "SKILL", "pattern": [{"LOWER": "copilot"}]},
         {"label": "SKILL", "pattern": [{"LOWER": "cursor"}]},
         
-        # TODO: educational qualifications
-        # {"label": "EDUCATION", "pattern": [{"LOWER": "bachelor's degree"}]},
+        # EDUCATION: Degree Types
+        {"label": "EDUCATION", "pattern": [{"LOWER": "bachelor's"}, {"LOWER": "degree"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "bachelor"}, {"LOWER": "of"}, {"LOWER": "science"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "bachelor"}, {"LOWER": "of"}, {"LOWER": "engineering"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "master's"}, {"LOWER": "degree"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "master"}, {"LOWER": "of"}, {"LOWER": "science"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "master"}, {"LOWER": "of"}, {"LOWER": "business"}, {"LOWER": "administration"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "phd"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "doctorate"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "mba"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "b.s."}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "b.a."}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "b.e."}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "b.tech"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "m.s."}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "m.a."}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "m.tech"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "associate's"}, {"LOWER": "degree"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "associate"}, {"LOWER": "degree"}]},
+        # EDUCATION: Fields of Study
+        {"label": "EDUCATION", "pattern": [{"LOWER": "computer"}, {"LOWER": "science"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "computer"}, {"LOWER": "engineering"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "information"}, {"LOWER": "technology"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "software"}, {"LOWER": "engineering"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "data"}, {"LOWER": "science"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "electrical"}, {"LOWER": "engineering"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "mechanical"}, {"LOWER": "engineering"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "management"}, {"LOWER": "information"}, {"LOWER": "systems"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "business"}, {"LOWER": "administration"}]},
+        # EDUCATION: Internship-Specific (Ongoing Education)
+        {"label": "EDUCATION", "pattern": [{"LOWER": "currently"}, {"LOWER": "pursuing"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "currently"}, {"LOWER": "enrolled"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "pursuing"}, {"LOWER": "degree"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "enrolled"}, {"LOWER": "in"}]},
+        # EDUCATION: Year in School
+        {"label": "EDUCATION", "pattern": [{"LOWER": "freshman"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "sophomore"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "junior"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "senior"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "1st"}, {"LOWER": "year"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "2nd"}, {"LOWER": "year"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "3rd"}, {"LOWER": "year"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "4th"}, {"LOWER": "year"}]},
+        # EDUCATION: Expected Graduation
+        {"label": "EDUCATION", "pattern": [{"LOWER": "expected"}, {"LOWER": "graduation"}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "graduation"}, {"TEXT": ":"}, {"LIKE_NUM": True}]},
+        {"label": "EDUCATION", "pattern": [{"LOWER": "grad"}, {"TEXT": ":"}, {"LIKE_NUM": True}]},
         
     ]
     ruler.add_patterns(patterns)
@@ -118,6 +165,13 @@ def _extract_experience(doc):
     filtered_spans = filter_spans(spans)
     
     return [span.text for span in filtered_spans]
+
+def _extract_education(doc):
+    """
+    Helper function to extract education qualifications from any spaCy Doc.
+    Returns a list of education entities found.
+    """
+    return [ent.text for ent in doc.ents if ent.label_ == "EDUCATION"]
 
 def parse_experience_string(exp_string: str):
     """
@@ -200,6 +254,61 @@ def evaluate_candidate_experience(resume_exp_list, jd_exp_list):
             
     return evaluations
 
+def evaluate_candidate_education(resume_edu_list, jd_edu_list):
+    """
+    Compares the candidate's education against JD requirements.
+    """
+    evaluations = []
+    
+    # If JD doesn't specify education requirements, skip
+    if not jd_edu_list:
+        return []
+    
+    # Convert to lowercase for comparison
+    resume_edu_lower = [edu.lower() for edu in resume_edu_list]
+    
+    for jd_requirement in jd_edu_list:
+        jd_lower = jd_requirement.lower()
+        
+        # Check for exact or similar matches
+        found_match = None
+        highest_similarity = 0
+        
+        for r_edu in resume_edu_list:
+            r_lower = r_edu.lower()
+            
+            # Create spaCy docs for similarity comparison
+            jd_doc = nlp(jd_lower)
+            res_doc = nlp(r_lower)
+            similarity = jd_doc.similarity(res_doc)
+            
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                found_match = r_edu
+        
+        # JUDGMENT LOGIC
+        status = "Not Found"
+        details = "No matching education found."
+        
+        if found_match:
+            if highest_similarity >= 0.8:
+                status = "Matched"
+                details = f"Found: {found_match}"
+            elif highest_similarity >= 0.6:
+                status = "Partially Matched"
+                details = f"Found: {found_match} (Similar)"
+            else:
+                status = "Unmatched"
+                details = f"Found: {found_match} (Different qualification)"
+        
+        evaluations.append({
+            "requirement": jd_requirement,
+            "status": status,
+            "details": details
+        })
+    
+    return evaluations
+
 # 4. PUBLIC FUNCTION 1: JD Sanitization
 def sanitize_jd(text: str):
     """
@@ -214,6 +323,7 @@ def sanitize_jd(text: str):
         "type": "JD",
         "skills": _extract_skills(doc),
         "experience": _extract_experience(doc),
+        "education": _extract_education(doc),
         "doc": doc
     }
 
@@ -230,6 +340,7 @@ def sanitize_resume(text: str):
         "type": "RESUME",
         "skills": _extract_skills(doc),
         "experience": _extract_experience(doc),
+        "education": _extract_education(doc),
         "doc": doc
     }
     
@@ -255,7 +366,13 @@ def get_analysis_results(resume_text: str, jd_text: str):
         jd_data["experience"]
     )
     
-    # Step 4: Calculate ATS Match Score
+    # Step 4: Compare Education
+    education_analysis = evaluate_candidate_education(
+        resume_data["education"],
+        jd_data["education"]
+    )
+    
+    # Step 5: Calculate ATS Match Score
     total_jd_skills = len(jd_lower)
     
     if total_jd_skills > 0:
@@ -275,20 +392,34 @@ def get_analysis_results(resume_text: str, jd_text: str):
             elif exp["status"] == "Less Qualified (Years)":
                 exp_score -= (points_per_exp * 0.5)
     
-    SKILL_WEIGHT = 0.50
-    EXP_WEIGHT = 0.50
+    edu_score = 100.0
+    if education_analysis:
+        points_per_edu = 100.0 / len(education_analysis)
+        
+        for edu in education_analysis:
+            if edu["status"] == "Unmatched":
+                edu_score -= points_per_edu
+            elif edu["status"] == "Partially Matched":
+                edu_score -= (points_per_edu * 0.5)
     
-    final_score = (skill_score * SKILL_WEIGHT) + (exp_score * EXP_WEIGHT)
+    SKILL_WEIGHT = 0.50
+    EXP_WEIGHT = 0.30
+    EDU_WEIGHT = 0.20
+    
+    final_score = (skill_score * SKILL_WEIGHT) + (exp_score * EXP_WEIGHT) + (edu_score * EDU_WEIGHT)
     final_score = max(0.0, final_score)
     
-    # Step 4: Formatting
+    # Step 6: Formatting
     return {
         "match_score": f"{round(final_score, 1)}%",
         "missing_skills": missing_skills,
         "experience_analysis": experience_analysis,
+        "education_analysis": education_analysis,
         "details": {
             "resume_skills_found": list(resume_skills),
             "jd_skills_required": list(jd_skills),
+            "resume_education": resume_data["education"],
+            "jd_education_required": jd_data["education"],
         }
     }
 
