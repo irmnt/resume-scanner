@@ -42,7 +42,7 @@ export default function ResultPage() {
 
   // Helper function to dynamically color the experience cards based on ATS feedback
   const getStatusClass = (status: string) => {
-    if (status.includes("Qualified")) return "status-pass";
+    if (status.includes("Qualified") || status.includes("Matched")) return "status-pass";
     if (status.includes("Partially") || status.includes("Years")) return "status-warn";
     return "status-fail";
   };

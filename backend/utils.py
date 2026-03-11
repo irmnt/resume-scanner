@@ -111,10 +111,6 @@ def setup_nlp_pipeline(nlp):
         {"label": "EDUCATION", "pattern": [{"LOWER": "pursuing"}, {"LOWER": "degree"}]},
         {"label": "EDUCATION", "pattern": [{"LOWER": "enrolled"}, {"LOWER": "in"}]},
         # EDUCATION: Year in School
-        {"label": "EDUCATION", "pattern": [{"LOWER": "freshman"}]},
-        {"label": "EDUCATION", "pattern": [{"LOWER": "sophomore"}]},
-        {"label": "EDUCATION", "pattern": [{"LOWER": "junior"}]},
-        {"label": "EDUCATION", "pattern": [{"LOWER": "senior"}]},
         {"label": "EDUCATION", "pattern": [{"LOWER": "1st"}, {"LOWER": "year"}]},
         {"label": "EDUCATION", "pattern": [{"LOWER": "2nd"}, {"LOWER": "year"}]},
         {"label": "EDUCATION", "pattern": [{"LOWER": "3rd"}, {"LOWER": "year"}]},
@@ -169,9 +165,9 @@ def _extract_experience(doc):
 def _extract_education(doc):
     """
     Helper function to extract education qualifications from any spaCy Doc.
-    Returns a list of education entities found.
+    Returns a list of unique education entities found.
     """
-    return [ent.text for ent in doc.ents if ent.label_ == "EDUCATION"]
+    return list(set([ent.text for ent in doc.ents if ent.label_ == "EDUCATION"]))
 
 def parse_experience_string(exp_string: str):
     """
@@ -263,9 +259,6 @@ def evaluate_candidate_education(resume_edu_list, jd_edu_list):
     # If JD doesn't specify education requirements, skip
     if not jd_edu_list:
         return []
-    
-    # Convert to lowercase for comparison
-    resume_edu_lower = [edu.lower() for edu in resume_edu_list]
     
     for jd_requirement in jd_edu_list:
         jd_lower = jd_requirement.lower()
