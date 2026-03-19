@@ -26,14 +26,23 @@ def get_analysis_results(r_text: str, jd_text: str):
     prompt = f"""
     You are an expert Applicant Tracking System algorithm.
     Strictly evaluate the candidate's Resume against the Job Description.
-    
+
+    Important: focus on actual candidate work experience evidence.
+    - "experience_analysis" must be derived solely from resume project/job bullets (role/title, company, dates, responsibilities, technical actions, project context, and impact).
+    - Do NOT include raw JD requirement text inside "experience_analysis".
+    - OpenStack requirements should be evaluated in a separate optional section (e.g. "requirement_analysis" or "skills_analysis").
+    - If you choose to include requirement-level gaps, keep them distinct from experience narrative.
+
     Resume Text: 
     {r_text}
     Job Description Text: 
     {jd_text}
-    
-    Analyze the technical skills, years of experience, and educational requirements.
-    Respond ONLY with a valid JSON object matching the exact schema below. 
+
+    Analyze the candidate's work experience and skill coverage.
+    For `experience_analysis`, include only requirements or statements that contain the word "experience" (or clearly indicate hands-on professional role/project usage); exclude purely hard-skill checklist items.
+    For other JD lines, use `requirement_analysis` and/or `skills_analysis`.
+    Respond ONLY with a valid JSON object matching the exact schema below.
+
     Do not include any other conversational text or markdown formatting blocks.
 
     {{
@@ -43,6 +52,13 @@ def get_analysis_results(r_text: str, jd_text: str):
             {{
                 "requirement": "Specific experience requirement from JD",
                 "status": "Must be exactly one of: 'Qualified', 'Partially Matched Domain', 'Less Qualified (Years)', or 'Unmatched Domain'",
+                "details": "A brief 1-sentence explanation of why this status was chosen"
+            }}
+        ],
+        "skills_analysis": [
+            {{
+                "skill": "Specific skill or technology",
+                "status": "Must be exactly one of: 'Matched', 'Partially Matched', or 'Unmatched'",
                 "details": "A brief 1-sentence explanation of why this status was chosen"
             }}
         ],
