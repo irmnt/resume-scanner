@@ -46,7 +46,7 @@ def get_analysis_results(r_text: str, jd_text: str):
     Do not include any other conversational text or markdown formatting blocks.
 
     {{
-        "match_score": "A string representing the overall match percentage from 0.0% to 100.0%. Weight skills (50%), experience (30%), and education (20%).",
+        "match_score": "A string representing the overall match percentage from 0.0% to 100.0%, based on skills, experience, and education fit.",
         "missing_skills": ["List", "of", "missing", "hard", "technical", "skills"],
         "experience_analysis": [
             {{
