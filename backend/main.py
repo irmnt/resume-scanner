@@ -39,6 +39,10 @@ async def extract_text_from_pdf(file: UploadFile, file_type_name: str) -> str:
             raise HTTPException(status_code=400, detail=f"Could not extract text from the {file_type_name} PDF. Please ensure it's a valid document.")
         
         return extracted_text
+    
+    except HTTPException:
+        # Preserve HTTP errors raised deliberately for invalid inputs
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred while processing the {file_type_name} PDF: {str(e)}")
 
