@@ -31,4 +31,74 @@ A full-stack web application designed to analyze the alignment between a candida
    npm run dev
    ```
 
+## 🧪 Testing
+
+### Frontend Testing (Jest + React Testing Library)
+
+**Installation (Already Done):**
+```bash
+cd frontend
+npm install --save-dev jest @testing-library/react @testing-library/jest-dom jest-environment-jsdom @babel/preset-react @babel/preset-typescript identity-obj-proxy @types/jest ts-jest
+```
+
+**Test Setup:**
+- Testing framework: **Jest** with **React Testing Library**
+- Test files location: `frontend/tests/`
+- Configuration: `frontend/jest.config.js`
+
+**Test Structure:**
+```
+frontend/
+├── tests/
+│   ├── pages/
+│   │   ├── HomePage.test.tsx
+│   │   └── ResultPage.test.tsx
+│   └── setup/
+│       └── setupTests.ts
+├── jest.config.js
+└── TESTING.md (detailed guide)
+```
+
+**Running Tests:**
+```bash
+cd frontend
+
+# Run all tests once
+npm test
+
+# Run tests in watch mode (auto-rerun on file changes)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run specific test file
+npm test -- HomePage
+
+# Run tests matching a pattern
+npm test -- --testNamePattern="validation"
+```
+
+**Current Test Coverage:**
+- ✅ HomePage: 9 tests (form inputs, validation, submissions)
+- ✅ ResultPage: 3 tests (empty state, navigation, button interactions)
+- **Total: 12 passing tests**
+
+**Writing New Tests:**
+1. Create test file in `tests/` folder mirroring `src/` structure
+2. Example: `tests/components/Button.test.tsx` for `src/components/Button.tsx`
+3. Use relative imports: `import Button from '../../src/components/Button'`
+4. See `TESTING.md` for patterns and best practices
+
+### Backend Testing
+
+```bash
+cd backend
+
+# Run tests
+pytest tests/
+
+# Run with coverage
+pytest --cov=. tests/
+```
 

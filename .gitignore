@@ -1,6 +1,13 @@
 # Frontend
 
 **/node_modules/
+**/dist/
+**/build/
+
+# Test artifacts (should not be committed)
+**/coverage/
+**/.nyc_output/
+**/junit.xml
 
 # Backend
 
